@@ -1,147 +1,111 @@
-import {
-  merchList,
-  productionBatches,
-} from "@/data/mock-data";
+"use client";
+
+import { useState } from "react";
+
+import { merchList as initialMerchList } from "@/data/mock-data";
+import { productionBatches as initialProductionBatches } from "@/data/mock-data";
+
+import type { ProductionBatch } from "@/types";
+
+import AddProductionForm from "@/components/add-production-form";
+import ProductionCard from "@/components/production-card";
 
 export default function ProductionPage() {
+  const [merchList] = useState(initialMerchList);
+
+  const [batches, setBatches] = useState<ProductionBatch[]>(
+    initialProductionBatches
+  );
+
+  const [showForm, setShowForm] = useState(false);
+
+  const [selectedVariantId, setSelectedVariantId] =
+    useState<string>("");
+
+  function handleShowAddForm(variantId = "") {
+    setSelectedVariantId(variantId);
+    setShowForm(true);
+  }
+
+  function handleAddBatch(batch: ProductionBatch) {
+    setBatches((current) => [...current, batch]);
+    setShowForm(false);
+    setSelectedVariantId("");
+  }
+
+  function handleUpdateBatch(updatedBatch: ProductionBatch) {
+    setBatches((current) =>
+      current.map((batch) =>
+        batch.id === updatedBatch.id
+          ? updatedBatch
+          : batch
+      )
+    );
+  }
+
+  function handleDeleteBatch(id: string) {
+    setBatches((current) =>
+      current.filter((batch) => batch.id !== id)
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <section>
-        <h1 className="text-3xl font-bold">
-          Production Planning
-        </h1>
+      {/* Page Header */}
+      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-medium text-violet-600">
+              Production Planning
+            </p>
 
-        <p className="mt-2 text-gray-500">
-          Track production requirements and vendor
-          orders.
-        </p>
+            <h1 className="mt-1 text-3xl font-bold text-stone-800">
+              Production
+            </h1>
+
+            <p className="mt-2 max-w-2xl text-sm text-stone-500">
+              Track vendor orders, received quantities, and
+              production progress for each merch variant.
+            </p>
+          </div>
+
+          <button
+            onClick={() => handleShowAddForm()}
+            className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-700"
+          >
+            + Add Production Batch
+          </button>
+        </div>
       </section>
 
-      <div className="overflow-hidden rounded-xl border bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-gray-50">
-            <tr>
-              <th className="px-6 py-4 text-left">
-                Product
-              </th>
+      {/* Add Form */}
+      {showForm && (
+        <AddProductionForm
+          merchList={merchList}
+          initialVariantId={selectedVariantId}
+          onAdd={handleAddBatch}
+          onCancel={() => {
+            setShowForm(false);
+            setSelectedVariantId("");
+          }}
+        />
+      )}
 
-              <th className="px-6 py-4 text-left">
-                Vendor
-              </th>
-
-              <th className="px-6 py-4 text-right">
-                Required
-              </th>
-
-              <th className="px-6 py-4 text-right">
-                Ordered
-              </th>
-
-              <th className="px-6 py-4 text-right">
-                Received
-              </th>
-
-              <th className="px-6 py-4 text-left">
-                Status
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {productionBatches.map((batch) => {
-              const required =
-                getRequiredQuantity(
-                  batch.merchVariantId
-                );
-
-              return (
-                <tr
-                  key={batch.id}
-                  className="border-b last:border-0"
-                >
-                  <td className="px-6 py-4 font-medium">
-                    {getVariantName(
-                      batch.merchVariantId
-                    )}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {batch.vendor}
-                  </td>
-
-                  <td className="px-6 py-4 text-right">
-                    {required}
-                  </td>
-
-                  <td className="px-6 py-4 text-right">
-                    {batch.orderedQuantity}
-                  </td>
-
-                  <td className="px-6 py-4 text-right">
-                    {batch.receivedQuantity}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <StatusBadge
-                      status={batch.status}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* Production Cards */}
+      <div className="space-y-4">
+        {merchList.flatMap((merch) =>
+          merch.variants.map((variant) => (
+            <ProductionCard
+              key={variant.id}
+              variant={variant}
+              batches={batches}
+              onAddBatch={handleShowAddForm}
+              onUpdateBatch={handleUpdateBatch}
+              onDeleteBatch={handleDeleteBatch}
+            />
+          ))
+        )}
       </div>
     </div>
-  );
-}
-
-function getRequiredQuantity(
-  variantId: string
-) {
-  for (const merch of merchList) {
-    const variant = merch.variants.find(
-      (variant) => variant.id === variantId
-    );
-
-    if (variant) {
-      return variant.plannedQuantity;
-    }
-  }
-
-  return 0;
-}
-
-function getVariantName(id: string) {
-  for (const merch of merchList) {
-    const variant = merch.variants.find(
-      (variant) => variant.id === id
-    );
-
-    if (variant) {
-      return `${merch.name} — ${variant.name}`;
-    }
-  }
-
-  return "Unknown";
-}
-
-function StatusBadge({
-  status,
-}: {
-  status: string;
-}) {
-  const labels: Record<string, string> = {
-    "not-ordered": "Not Ordered",
-    ordered: "Ordered",
-    "in-production": "In Production",
-    shipped: "Shipped",
-    arrived: "Arrived",
-  };
-
-  return (
-    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium">
-      {labels[status] ?? status}
-    </span>
   );
 }

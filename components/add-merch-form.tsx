@@ -41,7 +41,7 @@ export default function AddMerchForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-xl border bg-white p-6"
+      className="rounded-2xl border border-violet-100 bg-white p-6 shadow-sm"
     >
       <h2 className="text-lg font-semibold">
         Add New Merch
@@ -58,7 +58,7 @@ export default function AddMerchForm({
             onChange={(e) =>
               setName(e.target.value)
             }
-            placeholder="e.g. Towa Sticker"
+            placeholder="Your merch name"
             className="w-full rounded-lg border px-3 py-2"
           />
         </div>
@@ -74,7 +74,7 @@ export default function AddMerchForm({
               setCategory(e.target.value)
             }
             placeholder="e.g. Sticker"
-            className="w-full rounded-lg border px-3 py-2"
+            className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
           />
         </div>
       </div>
@@ -82,7 +82,7 @@ export default function AddMerchForm({
       <div className="mt-4 flex gap-2">
         <button
           type="submit"
-          className="rounded-lg bg-black px-4 py-2 text-sm text-white"
+          className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
         >
           Add Merch
         </button>
@@ -90,7 +90,7 @@ export default function AddMerchForm({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border px-4 py-2 text-sm"
+          className="rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
         >
           Cancel
         </button>

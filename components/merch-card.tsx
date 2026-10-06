@@ -83,7 +83,7 @@ export default function MerchCard({
       {/* MERCH HEADER */}
 
       {editing ? (
-        <div className="space-y-3">
+        <div className="space-y-4 bg-violet-50/40 p-6">
           <input
             value={name}
             onChange={(e) =>
@@ -156,7 +156,7 @@ export default function MerchCard({
 
       {/* VARIANTS */}
 
-      <div className="mt-6">
+      <div className="border-t border-stone-100 p-6">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-medium">
             Variants
