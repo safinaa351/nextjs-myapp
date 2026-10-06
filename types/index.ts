@@ -36,12 +36,12 @@ export interface Merch {
   variants: MerchVariant[];
 }
 
-export interface ProductionBatch {
+export interface ProductionOrder {
   id: string;
-  merchVariantId: string;
   vendor: string;
+  merchId: string;
+  merchVariantId: string;
   orderedQuantity: number;
-  receivedQuantity: number;
   unitCost: number;
   status: ProductionStatus;
   notes?: string;

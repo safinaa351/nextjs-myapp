@@ -1,7 +1,7 @@
 import {
   Artcon,
   Merch,
-  ProductionBatch,
+  ProductionOrder,
 } from "@/types";
 
 export const currentArtcon: Artcon = {
@@ -76,43 +76,40 @@ export const merchList: Merch[] = [
   },
 ];
 
-export const productionBatches: ProductionBatch[] = [
+export const productionOrders: ProductionOrder[] = [
   {
-    id: "batch-001",
-    merchVariantId: "variant-001",
+    id: "production-001",
     vendor: "Sticker Vendor A",
+    merchId: "merch-001",
+    merchVariantId: "variant-001",
     orderedQuantity: 50,
-    receivedQuantity: 50,
     unitCost: 3500,
     status: "arrived",
   },
-
   {
-    id: "batch-002",
-    merchVariantId: "variant-002",
+    id: "production-002",
     vendor: "Sticker Vendor A",
+    merchId: "merch-001",
+    merchVariantId: "variant-002",
     orderedQuantity: 30,
-    receivedQuantity: 20,
     unitCost: 5000,
     status: "shipped",
   },
-
   {
-    id: "batch-003",
-    merchVariantId: "variant-003",
+    id: "production-003",
     vendor: "Print Vendor B",
+    merchId: "merch-002",
+    merchVariantId: "variant-003",
     orderedQuantity: 20,
-    receivedQuantity: 0,
     unitCost: 12000,
     status: "in-production",
   },
-
   {
-    id: "batch-004",
-    merchVariantId: "variant-004",
+    id: "production-004",
     vendor: "Print Vendor B",
+    merchId: "merch-002",
+    merchVariantId: "variant-004",
     orderedQuantity: 10,
-    receivedQuantity: 10,
     unitCost: 18000,
     status: "arrived",
   },

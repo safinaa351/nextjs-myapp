@@ -1,7 +1,7 @@
 import {
   currentArtcon,
   merchList,
-  productionBatches,
+  productionOrders,
 } from "@/data/mock-data";
 
 export default function Home() {
@@ -95,26 +95,25 @@ export default function Home() {
           </h2>
 
           <div className="mt-4 space-y-3">
-            {productionBatches.map((batch) => (
+            {productionOrders.map((order) => (
               <div
-                key={batch.id}
+                key={order.id}
                 className="flex justify-between border-b pb-3"
               >
                 <div>
                   <p className="font-medium">
                     {getVariantName(
-                      batch.merchVariantId
+                      order.merchVariantId
                     )}
                   </p>
 
                   <p className="text-sm text-gray-500">
-                    {batch.vendor}
+                    {order.vendor}
                   </p>
                 </div>
 
                 <p className="text-sm">
-                  {batch.receivedQuantity}/
-                  {batch.orderedQuantity}
+                  {order.orderedQuantity}
                 </p>
               </div>
             ))}

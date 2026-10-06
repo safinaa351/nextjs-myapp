@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { Merch, ProductionBatch } from "@/types";
+import type { Merch, ProductionOrder, ProductionStatus } from "@/types";
 
 interface AddProductionFormProps {
   merchList: Merch[];
   initialVariantId?: string;
-  onAdd: (batch: ProductionBatch) => void;
+  onAdd: (order: ProductionOrder) => void;
   onCancel: () => void;
 }
 
@@ -16,8 +16,10 @@ export default function AddProductionForm({
   onAdd,
   onCancel,
 }: AddProductionFormProps) {
+  // Added merchId to the mapped variants so we can pass it to the new order
   const variants = merchList.flatMap((merch) =>
     merch.variants.map((variant) => ({
+      merchId: merch.id,
       merchName: merch.name,
       variantName: variant.name,
       variantId: variant.id,
@@ -29,9 +31,8 @@ export default function AddProductionForm({
     merchVariantId: initialVariantId,
     vendor: "",
     orderedQuantity: 0,
-    receivedQuantity: 0,
     unitCost: 0,
-    status: "not-ordered" as ProductionBatch["status"],
+    status: "not-ordered" as ProductionStatus,
     notes: "",
   });
 
@@ -40,9 +41,7 @@ export default function AddProductionForm({
   );
 
   function handleVariantChange(variantId: string) {
-    const variant = variants.find(
-      (item) => item.variantId === variantId
-    );
+    const variant = variants.find((item) => item.variantId === variantId);
 
     setFormData({
       ...formData,
@@ -58,18 +57,21 @@ export default function AddProductionForm({
       return;
     }
 
-    const newBatch: ProductionBatch = {
-      id: `batch-${Date.now()}`,
-      merchVariantId: formData.merchVariantId,
+    const selected = variants.find(v => v.variantId === formData.merchVariantId);
+    if (!selected) return;
+
+    const newOrder: ProductionOrder = {
+      id: `order-${Date.now()}`,
       vendor: formData.vendor.trim(),
+      merchId: selected.merchId, // Added merchId requirement
+      merchVariantId: formData.merchVariantId,
       orderedQuantity: Number(formData.orderedQuantity),
-      receivedQuantity: Number(formData.receivedQuantity),
       unitCost: Number(formData.unitCost),
       status: formData.status,
       notes: formData.notes.trim() || undefined,
     };
 
-    onAdd(newBatch);
+    onAdd(newOrder);
   }
 
   return (
@@ -78,14 +80,10 @@ export default function AddProductionForm({
       className="rounded-2xl border border-violet-100 bg-violet-50/40 p-6 shadow-sm"
     >
       <div className="mb-5">
-        <p className="text-sm font-medium text-violet-600">
-          Production
-        </p>
-
+        <p className="text-sm font-medium text-violet-600">Production</p>
         <h2 className="mt-1 text-xl font-bold text-stone-800">
-          Add Production Batch
+          Add Production Order
         </h2>
-
         <p className="mt-1 text-sm text-stone-500">
           Record an order from a vendor.
         </p>
@@ -97,7 +95,6 @@ export default function AddProductionForm({
           <label className="mb-1.5 block text-sm font-medium text-stone-700">
             Product / Variant
           </label>
-
           <select
             value={formData.merchVariantId}
             onChange={(e) => handleVariantChange(e.target.value)}
@@ -105,37 +102,26 @@ export default function AddProductionForm({
             required
           >
             <option value="">Select variant</option>
-
             {variants.map((variant) => (
               <option key={variant.variantId} value={variant.variantId}>
                 {variant.merchName} — {variant.variantName}
               </option>
             ))}
           </select>
-
           {selectedVariant && (
             <p className="mt-1.5 text-xs text-stone-500">
-              Default unit cost: Rp{" "}
-              {selectedVariant.unitCost.toLocaleString("id-ID")}
+              Default unit cost: Rp {selectedVariant.unitCost.toLocaleString("id-ID")}
             </p>
           )}
         </div>
 
         {/* Vendor */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-stone-700">
-            Vendor
-          </label>
-
+          <label className="mb-1.5 block text-sm font-medium text-stone-700">Vendor</label>
           <input
             type="text"
             value={formData.vendor}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                vendor: e.target.value,
-              })
-            }
+            onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
             placeholder="e.g. Sticker Vendor A"
             className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
             required
@@ -144,18 +130,10 @@ export default function AddProductionForm({
 
         {/* Status */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-stone-700">
-            Status
-          </label>
-
+          <label className="mb-1.5 block text-sm font-medium text-stone-700">Status</label>
           <select
             value={formData.status}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                status: e.target.value as ProductionBatch["status"],
-              })
-            }
+            onChange={(e) => setFormData({ ...formData, status: e.target.value as ProductionStatus })}
             className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
           >
             <option value="not-ordered">Not Ordered</option>
@@ -168,79 +146,35 @@ export default function AddProductionForm({
 
         {/* Ordered */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-stone-700">
-            Ordered Quantity
-          </label>
-
+          <label className="mb-1.5 block text-sm font-medium text-stone-700">Ordered Quantity</label>
           <input
             type="number"
             min="0"
             value={formData.orderedQuantity}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                orderedQuantity: Number(e.target.value),
-              })
-            }
-            className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-          />
-        </div>
-
-        {/* Received */}
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-stone-700">
-            Received Quantity
-          </label>
-
-          <input
-            type="number"
-            min="0"
-            value={formData.receivedQuantity}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                receivedQuantity: Number(e.target.value),
-              })
-            }
+            onChange={(e) => setFormData({ ...formData, orderedQuantity: Number(e.target.value) })}
             className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
           />
         </div>
 
         {/* Unit Cost */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-stone-700">
-            Unit Cost
-          </label>
-
+          <label className="mb-1.5 block text-sm font-medium text-stone-700">Unit Cost</label>
           <input
             type="number"
             min="0"
             value={formData.unitCost}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                unitCost: Number(e.target.value),
-              })
-            }
+            onChange={(e) => setFormData({ ...formData, unitCost: Number(e.target.value) })}
             className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
           />
         </div>
 
         {/* Notes */}
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-stone-700">
-            Notes
-          </label>
-
+        <div className="md:col-span-2">
+          <label className="mb-1.5 block text-sm font-medium text-stone-700">Notes</label>
           <input
             type="text"
             value={formData.notes}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                notes: e.target.value,
-              })
-            }
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             placeholder="Optional"
             className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
           />
@@ -255,12 +189,11 @@ export default function AddProductionForm({
         >
           Cancel
         </button>
-
         <button
           type="submit"
           className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-700"
         >
-          Add Batch
+          Add Order
         </button>
       </div>
     </form>

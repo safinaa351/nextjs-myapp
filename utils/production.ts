@@ -1,20 +1,22 @@
-import type { MerchVariant, ProductionBatch } from "@/types";
+import type { MerchVariant, ProductionOrder } from "@/types";
 
 export function getProductionSummary(
   variant: MerchVariant,
-  batches: ProductionBatch[]
+  orders: ProductionOrder[]
 ) {
-  const variantBatches = batches.filter(
-    (batch) => batch.merchVariantId === variant.id
+  const variantOrders = orders.filter(
+    (order) => order.merchVariantId === variant.id
   );
 
-  const ordered = variantBatches.reduce(
-    (total, batch) => total + batch.orderedQuantity,
+  const ordered = variantOrders.reduce(
+    (total, order) => total + order.orderedQuantity,
     0
   );
 
-  const received = variantBatches.reduce(
-    (total, batch) => total + batch.receivedQuantity,
+  // Since receivedQuantity is removed, we count an order as received if it has "arrived"
+  const received = variantOrders.reduce(
+    (total, order) => 
+      order.status === "arrived" ? total + order.orderedQuantity : total,
     0
   );
 
@@ -30,9 +32,9 @@ export function getProductionSummary(
 
 export function getProductionProgress(
   variant: MerchVariant,
-  batches: ProductionBatch[]
+  orders: ProductionOrder[]
 ) {
-  const summary = getProductionSummary(variant, batches);
+  const summary = getProductionSummary(variant, orders);
 
   if (summary.required === 0) {
     return 0;
