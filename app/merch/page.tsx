@@ -1,65 +1,209 @@
 "use client";
 
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 import { Merch, MerchVariant } from "@/types";
 import MerchCard from "@/components/merch-card";
 import AddMerchForm from "@/components/add-merch-form";
 
-const initialMerchList: Merch[] = [
-  {
-    id: "merch-001",
-    name: "Towa Sticker",
-    category: "Sticker",
-    status: "planned",
-    variants: [
-      {
-        id: "variant-001",
-        name: "Normal",
-        plannedQuantity: 50,
-        sellingPrice: 15000,
-        unitCost: 3500,
-      },
-      {
-        id: "variant-002",
-        name: "Holographic",
-        plannedQuantity: 30,
-        sellingPrice: 18000,
-        unitCost: 5000,
-      },
-    ],
-  },
-
-  {
-    id: "merch-002",
-    name: "Ren A5 Print",
-    category: "Print",
-    status: "in-production",
-    variants: [
-      {
-        id: "variant-003",
-        name: "Normal",
-        plannedQuantity: 20,
-        sellingPrice: 35000,
-        unitCost: 12000,
-      },
-      {
-        id: "variant-004",
-        name: "Holographic",
-        plannedQuantity: 10,
-        sellingPrice: 45000,
-        unitCost: 18000,
-      },
-    ],
-  },
-];
 
 export default function MerchPage() {
-  const [merchList, setMerchList] =
-    useState<Merch[]>(initialMerchList);
+  const [merchList, setMerchList] = useState<Merch[]>([]);
+  const [loading, setLoading] = useState(true); 
+  const [showForm, setShowForm] = useState(false);
 
-  const [showForm, setShowForm] =
-    useState(false);
+  async function fetchMerch() {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("merch")
+      .select(`
+        id,
+        name,
+        category,
+        status,
+        variants:merch_variants (
+          id,
+          name,
+          planned_quantity,
+          selling_price,
+          unit_cost
+        )
+      `)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching merch:", error);
+      setLoading(false);
+      return;
+    }
+
+    const formattedMerch: Merch[] = data.map((merch) => ({
+      id: merch.id,
+      name: merch.name,
+      category: merch.category,
+      status: merch.status as Merch["status"],
+      variants: merch.variants.map((variant) => ({
+        id: variant.id,
+        name: variant.name,
+        plannedQuantity: variant.planned_quantity,
+        sellingPrice: variant.selling_price,
+        unitCost: variant.unit_cost,
+      })),
+    }));
+
+    setMerchList(formattedMerch);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    fetchMerch();
+  }, []);
+
+  //add function
+  async function handleAddMerch(newMerch: Merch) {
+    const { error } = await supabase
+      .from("merch")
+      .insert({
+        id: newMerch.id,
+        name: newMerch.name,
+        category: newMerch.category,
+        status: newMerch.status,
+      });
+
+    if (error) {
+      console.error("Error adding merch:", error);
+      alert("Failed to add merch.");
+      return;
+    }
+
+    await fetchMerch();
+    setShowForm(false);
+  }
+
+  // edit and delete functions
+  async function handleUpdateMerch(updatedMerch: Merch) {
+    const previousMerch = merchList.find(
+      (merch) => merch.id === updatedMerch.id
+    );
+
+    if (!previousMerch) {
+      return;
+    }
+
+    // Update merch itself
+    const { error: merchError } = await supabase
+      .from("merch")
+      .update({
+        name: updatedMerch.name,
+        category: updatedMerch.category,
+        status: updatedMerch.status,
+      })
+      .eq("id", updatedMerch.id);
+
+    if (merchError) {
+      console.error("Error updating merch:", merchError);
+      alert("Failed to update merch.");
+      return;
+    }
+
+    // Update existing variants
+    for (const variant of updatedMerch.variants) {
+      const existingVariant = previousMerch.variants.find(
+        (oldVariant) => oldVariant.id === variant.id
+      );
+
+      if (existingVariant) {
+        const { error: variantError } = await supabase
+          .from("merch_variants")
+          .update({
+            name: variant.name,
+            planned_quantity: variant.plannedQuantity,
+            selling_price: variant.sellingPrice,
+            unit_cost: variant.unitCost,
+          })
+          .eq("id", variant.id);
+
+        if (variantError) {
+          console.error(
+            "Error updating variant:",
+            variantError
+          );
+          alert("Failed to update variant.");
+          return;
+        }
+      }
+    }
+
+    // Add new variants
+    const newVariants = updatedMerch.variants.filter(
+      (variant) =>
+        !previousMerch.variants.some(
+          (oldVariant) => oldVariant.id === variant.id
+        )
+    );
+
+    if (newVariants.length > 0) {
+      const { error: insertVariantError } = await supabase
+        .from("merch_variants")
+        .insert(
+          newVariants.map((variant) => ({
+            id: variant.id,
+            merch_id: updatedMerch.id,
+            name: variant.name,
+            planned_quantity: variant.plannedQuantity,
+            selling_price: variant.sellingPrice,
+            unit_cost: variant.unitCost,
+          }))
+        );
+
+      if (insertVariantError) {
+        console.error(
+          "Error adding variants:",
+          insertVariantError
+        );
+        alert("Failed to add variant.");
+        return;
+      }
+    }
+
+    // Delete removed variants
+    const removedVariants = previousMerch.variants.filter(
+      (oldVariant) =>
+        !updatedMerch.variants.some(
+          (variant) => variant.id === oldVariant.id
+        )
+    );
+
+    for (const variant of removedVariants) {
+      const { error: deleteVariantError } = await supabase
+        .from("merch_variants")
+        .delete()
+        .eq("id", variant.id);
+
+      if (deleteVariantError) {
+        console.error(
+          "Error deleting variant:",
+          deleteVariantError
+        );
+        alert(
+          "Failed to delete variant. It may already be used by a production order."
+        );
+        return;
+      }
+    }
+
+    await fetchMerch();
+  }
+
+  //loading state return
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center text-stone-500">
+        Loading merch data...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -90,14 +234,7 @@ export default function MerchPage() {
 
       {showForm && (
         <AddMerchForm
-          onAdd={(newMerch) => {
-            setMerchList((current) => [
-              ...current,
-              newMerch,
-            ]);
-
-            setShowForm(false);
-          }}
+          onAdd={handleAddMerch}
           onCancel={() => setShowForm(false)}
         />
       )}
@@ -114,15 +251,7 @@ export default function MerchPage() {
                 )
               );
             }}
-            onUpdate={(updatedMerch) => {
-              setMerchList((current) =>
-                current.map((item) =>
-                  item.id === updatedMerch.id
-                    ? updatedMerch
-                    : item
-                )
-              );
-            }}
+            onUpdate={handleUpdateMerch}
           />
         ))}
       </div>
